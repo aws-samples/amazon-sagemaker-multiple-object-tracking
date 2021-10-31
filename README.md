@@ -1,5 +1,5 @@
 # Train and Deploy Multiple Object Tracking Model with Amazon SageMaker
----
+
 
 [Multiple Object Tracking](https://motchallenge.net/) or MOT estimates a bounding box and ID for each pre-defined object in videos or consecutive frames, which has been used in tasks such as live sports, manufacturing, surveillance, and traffic monitoring. In the past, the high latency caused by the limitation of hardware and complexity of ML-based tracking algorithm is a major obstacle for its application in the industry. The state-of art algorithm [FairMOT](https://arxiv.org/abs/2004.01888) has reached the speed of about 30FPS on the [MOT challenge datasets](https://motchallenge.net/), which helps MOT find its way in many industrial scenarios.
 
@@ -38,7 +38,7 @@ T_{total} = ( N_{traning}\times T_{one\space training} ) / N_{parallel}
 $$
 
 ## Serving
----
+
 We provide two ways of deploying the trained model: real time inference with endpoint and batch inference.
 - To deploy a real time endpoint, open [`fairmot-inference.ipynb`](fairmot-inference.ipynb) and run the cells step by step.
 - To run batch inference, open [`fairmot-batch-inference.ipynb`](fairmot-batch-inference.ipynb) and run the cells step by step.
@@ -48,5 +48,5 @@ We provide two ways of deploying the trained model: real time inference with end
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
 ## License
----
+
 This library is licensed under the MIT-0 License. See the LICENSE file.
