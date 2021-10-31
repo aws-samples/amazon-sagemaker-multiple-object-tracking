@@ -26,16 +26,7 @@ This post shows how to train and deploy a state-of-art MOT algorithm [FairMOT](h
 
 To tune hyperparameters with Amazon SageMaker Hyperparameter Jobs, we modified the original training script to validate the model during training and set the validation loss as the objective metric. Currently our project only supports model training on a single instance.
 
-Open [`fairmot-training.ipynb`](fairmot-training.ipynb) and run the cells step by step. It will take 3 hours to complete one training job. When performing hyperparameter tuning job, total running time will be about:
-$$
-\begin{align}
-N_{traning}: \text{Maximum total number of training jobs} \\
-N_{parallel}: \text{Maximum number of parallel training jobs} \\
-T_{one\space training}: \text{time on one training job, 3 hours in this case} \\
-T_{total}: \text{total running time} \\
-T_{total} = ( N_{traning}\times T_{one\space training} ) / N_{parallel}
-\end{align}
-$$
+Open [`fairmot-training.ipynb`](fairmot-training.ipynb) and run the cells step by step. It will take 3 hours to complete one training job. When performing hyperparameter tuning job, total running time will be about: `Maximum total number of training jobs` x `Time on one training job` / `Maximum number of parallel training jobs`.
 
 ## Serving
 
