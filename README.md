@@ -23,7 +23,7 @@ This post shows how to train and deploy a state-of-art MOT algorithm [FairMOT](h
 - Assuming you run **one training job** with the default parameters, test the real time inference and batch inference with the default test data, and delete inference endpoint once finishing test, totally it costs less than `$95`.
 
 ## Training
----
+
 To tune hyperparameters with Amazon SageMaker Hyperparameter Jobs, we modified the original training script to validate the model during training and set the validation loss as the objective metric. Currently our project only supports model training on a single instance.
 
 Open [`fairmot-training.ipynb`](fairmot-training.ipynb) and run the cells step by step. It will take 3 hours to complete one training job. When performing hyperparameter tuning job, total running time will be about:
