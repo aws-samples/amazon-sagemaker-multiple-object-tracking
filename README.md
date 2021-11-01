@@ -32,7 +32,7 @@ Open [`fairmot-training.ipynb`](fairmot-training.ipynb) and run the cells step b
 
 We provide two ways of deploying the trained model: real time inference with endpoint and batch inference.
 - To deploy a real time endpoint, open [`fairmot-inference.ipynb`](fairmot-inference.ipynb) and run the cells step by step.
-- To run batch inference, open [`fairmot-batch-inference.ipynb`](fairmot-batch-inference.ipynb) and run the cells step by step.
+- To run batch inference, open [`fairmot-batch-inference.ipynb`](fairmot-batch-inference.ipynb) and run the cells step by step. Because [SageMaker Batch Transform only can run the batch transform job finishing within 600 seconds](https://docs.aws.amazon.com/sagemaker/latest/dg/your-algorithms-batch-code.html), we use SageMaker processing to run the batch inference.
 
 ## Security
 
