@@ -13,10 +13,13 @@ HALF_VAL=$3
 S3_PREFIX="fairmot/sagemaker/input"
 
 # Stage directory must be on EBS volume with 100 GB available space
-STAGE_DIR=$HOME/SageMaker/fairmot-sagemaker/dataset
+STAGE_DIR=$(pwd)/datasets
 
 echo "Create stage directory: $STAGE_DIR"
-mkdir -p $STAGE_DIR
+
+if [ ! -d "$STAGE_DIR" ]; then
+    mkdir -p $STAGE_DIR
+fi
 
 zip_file=$STAGE_DIR/$DATA_VERSION.zip
 
