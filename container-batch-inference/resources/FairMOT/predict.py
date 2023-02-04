@@ -85,9 +85,8 @@ def infer_video(vpath, width, height):
     
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     output_mp4 = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1])
-    output_jpg = os.path.join('/opt/ml/processing/output', 'jpgs')
-    output_txt = os.path.join('/opt/ml/processing/output', 'results')
-    mkdir_if_missing(output_txt)
+    output_jpg = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1].split('.')[-2], 'jpgs')
+    output_txt = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1].split('.')[-2])
     mkdir_if_missing(output_jpg)
     print(f'output_mp4_path : {output_mp4} width: {width}, height: {height}')
     print(f'output_txt_path : {output_txt}')
@@ -99,7 +98,8 @@ def infer_video(vpath, width, height):
     
     while True:
         ret, frame = cap.read()
-out_            break
+        if ret != True:
+            break
         
         online_targets = tracker.update([frame])
         online_tlwhs = []
@@ -108,6 +108,7 @@ out_            break
         for i in online_targets[0]:
             online_ids.append(i)
             online_tlwhs.append(online_targets[0][i])
+        results.append((frame_id + 1, online_tlwhs, online_ids))
         
         # save video
         frame_res = draw_res(online_targets[0], frame, frame_id, width)
@@ -118,9 +119,8 @@ out_            break
         # save frame
         cv2.imwrite(os.path.join(output_jpg, '{:05d}.jpg'.format(frame_id)), frame)
     
-    results.append((frame_id + 1, online_tlwhs, online_ids))
     # save results
-    output_file = os.path.join(output_txt, '{:05d}.txt'.format(frame_id))
+    output_file=output_txt + '/results.txt'
     write_results(output_file, results)
     
     out.release()
@@ -149,7 +149,7 @@ def main():
     video_info = check_data()
     for k, v in video_info.items():
         infer_video(k, v['width'], v['height'])
-    print("Finishing inferecne job after storing the output")
+    print("... finishing inferecne job after storing the output")
 
 if __name__ == "__main__":
     main()
