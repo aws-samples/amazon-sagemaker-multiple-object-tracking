@@ -12,6 +12,8 @@ from tracker.multitracker import JDETracker
 from config import Config
 import cv2
 import numpy as np
+import os.path as osp
+import time
 
 def get_color(idx):
     idx = idx * 3
@@ -56,28 +58,70 @@ class FairMOTService:
 
         cls.trakcer = JDETracker(config, batch_size=batch_size)
         return cls.trakcer
+        
+def write_results(filename, results):
+    save_format = '{frame},{id},{x1},{y1},{w},{h},1,-1,-1,-1\n'
 
+    with open(filename, 'w') as f:
+        for frame_id, tlwhs, track_ids in results:
+            for tlwh, track_id in zip(tlwhs, track_ids):
+                if track_id < 0:
+                    continue
+                x1, y1, w, h = tlwh
+                x2, y2 = x1 + w, y1 + h
+                line = save_format.format(frame=frame_id, id=track_id, x1=x1, y1=y1, x2=x2, y2=y2, w=w, h=h)
+                f.write(line)
+    # logger.info('save results to {}'.format(filename))
+
+def mkdir_if_missing(d):
+    if not osp.exists(d):
+        os.makedirs(d)
+
+        
 def infer_video(vpath, width, height):
     tracker = FairMOTService.create_tracker(frame_w=width, frame_h=height)
     
     cap = cv2.VideoCapture(vpath)
     
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    output_path = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1])
-    print(f'output_path: {output_path} width: {width}, height: {height}')
-    out = cv2.VideoWriter(output_path, fourcc, 25, (width, height))
-    
+    output_mp4 = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1])
+    output_jpg = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1].split('.')[-2], 'jpgs')
+    output_txt = os.path.join('/opt/ml/processing/output', vpath.split('/')[-1].split('.')[-2])
+    mkdir_if_missing(output_jpg)
+    print(f'output_mp4_path : {output_mp4} width: {width}, height: {height}')
+    print(f'output_txt_path : {output_txt}')
+    print(f'output_jpg_path : {output_jpg}')
+
+    out = cv2.VideoWriter(output_mp4, fourcc, 25, (width, height))
+    results = []
     frame_id = 0
+    
     while True:
         ret, frame = cap.read()
         if ret != True:
             break
         
         online_targets = tracker.update([frame])
+        online_tlwhs = []
+        online_ids = []
+
+        for i in online_targets[0]:
+            online_ids.append(i)
+            online_tlwhs.append(online_targets[0][i])
+        results.append((frame_id + 1, online_tlwhs, online_ids))
+        
+        # save video
         frame_res = draw_res(online_targets[0], frame, frame_id, width)
         out.write(frame_res)
+        
         frame_id += 1
         print(f'frame-{frame_id}')
+        # save frame
+        cv2.imwrite(os.path.join(output_jpg, '{:05d}.jpg'.format(frame_id)), frame)
+    
+    # save results
+    output_file=output_txt + '/results.txt'
+    write_results(output_file, results)
     
     out.release()
     cap.release()
@@ -105,6 +149,7 @@ def main():
     video_info = check_data()
     for k, v in video_info.items():
         infer_video(k, v['width'], v['height'])
+    print("... finishing inferecne job after storing the output")
 
 if __name__ == "__main__":
     main()
