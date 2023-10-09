@@ -20,6 +20,7 @@ COPY resources/train.py /opt/ml/code/train.py
 COPY resources/FairMOT/make.sh /DCNv2/make.sh
 COPY resources/FairMOT/opts.py /fairmot/src/lib/opts.py
 COPY resources/FairMOT/train.py /fairmot/src/train.py
+COPY resources/FairMOT/jde.py /fairmot/src/lib/datasets/dataset/jde.py
 COPY resources/FairMOT/track.py /fairmot/src/track.py
 COPY resources/FairMOT/pose_dla_dcn.py /fairmot/src/lib/models/networks/pose_dla_dcn.py
 COPY resources/FairMOT/model.py /fairmot/src/lib/models/model.py
