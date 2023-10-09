@@ -19,13 +19,16 @@ from opts import opts
 from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
 from utils.utils import xyxy2xywh, generate_anchors, xywh2xyxy, encode_delta
 
+import re
+
+IMAGE_FORMAT = ['.jpg', '.jpeg', '.png', '.tif']
+IMAGE_FORMAT_PATTERN = '|'.join(map(re.escape, IMAGE_FORMAT))
 
 class LoadImages:  # for inference
     def __init__(self, path, img_size=(1088, 608)):
         if os.path.isdir(path):
-            image_format = ['.jpg', '.jpeg', '.png', '.tif']
             self.files = sorted(glob.glob('%s/*.*' % path))
-            self.files = list(filter(lambda x: os.path.splitext(x)[1].lower() in image_format, self.files))
+            self.files = list(filter(lambda x: os.path.splitext(x)[1].lower() in IMAGE_FORMAT, self.files))
         elif os.path.isfile(path):
             self.files = [path]
 
@@ -81,63 +84,6 @@ class LoadImages:  # for inference
 
     def __len__(self):
         return self.nF  # number of files
-
-class LoadVideoMultiInput:  # for multipe input inference
-    def __init__(self, pathes, img_size=(1088, 608)):
-        self.caps = [cv2.VideoCapture(path) for path in pathes]
-        self.frame_rate = int(round(self.caps[0].get(cv2.CAP_PROP_FPS)))
-        self.vw = int(self.caps[0].get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.vh = int(self.caps[0].get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.vn = int(self.caps[0].get(cv2.CAP_PROP_FRAME_COUNT))
-
-        self.width = img_size[0]
-        self.height = img_size[1]
-        self.count = 0
-
-        self.w, self.h = 1920, 1080
-
-        for i in range(len(pathes)):
-            print('stread-{} - Lenth of the video: {:d} frames'.format(pathes[i],
-                int(self.caps[i].get(cv2.CAP_PROP_FRAME_COUNT))))
-
-    def get_size(self, vw, vh, dw, dh):
-        wa, ha = float(dw) / vw, float(dh) / vh
-        a = min(wa, ha)
-        return int(vw * a), int(vh * a)
-
-    def __iter__(self):
-        self.count = -1
-        return self
-
-    def __next__(self):
-        self.count += 1
-        if self.count == len(self):
-            raise StopIteration
-        # Read image
-        imgs = []
-        img0s = []
-        for cap in self.caps:
-            res, img0 = cap.read()  # BGR
-            assert img0 is not None, 'Failed to load frame {:d}'.format(self.count)
-            img0 = cv2.resize(img0, (self.w, self.h))
-
-            # Padded resize
-            img, _, _, _ = letterbox(img0, height=self.height, width=self.width)
-
-            # Normalize RGB
-            img = img[:, :, ::-1].transpose(2, 0, 1)
-            img = np.ascontiguousarray(img, dtype=np.float32)
-            img /= 255.0
-
-            imgs.append(img)
-            img0s.append(img0)
-
-        # cv2.imwrite(img_path + '.letterbox.jpg', 255 * img.transpose((1, 2, 0))[:, :, ::-1])  # save letterbox image
-        return self.count, imgs, img0s
-
-    def __len__(self):
-        return self.vn  # number of files
-
 
 
 class LoadVideo:  # for inference
@@ -195,8 +141,9 @@ class LoadImagesAndLabels:  # for training
             self.img_files = [x.replace('\n', '') for x in self.img_files]
             self.img_files = list(filter(lambda x: len(x) > 0, self.img_files))
 
-        self.label_files = [x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
-                            for x in self.img_files]
+        #self.label_files = [x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
+        #                    for x in self.img_files]
+        self.label_files = [re.sub(IMAGE_FORMAT_PATTERN, '.txt', x.replace('images', 'labels_with_ids')) for x in self.img_files]
 
         self.nF = len(self.img_files)  # number of image files
         self.width = img_size[0]
@@ -289,8 +236,6 @@ class LoadImagesAndLabels:  # for training
 
         if self.transforms is not None:
             img = self.transforms(img)
-        else:
-            img = img.permute(2,0,1)
 
         return img, labels, img_path, (h, w)
 
@@ -381,6 +326,10 @@ def random_affine(img, targets=None, degrees=(-10, 10), translate=(.1, .1), scal
 
             targets = targets[i]
             targets[:, 2:6] = xy[i]
+            targets = targets[targets[:, 2] < width]
+            targets = targets[targets[:, 4] > 0]
+            targets = targets[targets[:, 3] < height]
+            targets = targets[targets[:, 5] > 0]
 
         return imw, targets, M
     else:
@@ -426,9 +375,10 @@ class JointDataset(LoadImagesAndLabels):  # for training
                 self.img_files[ds] = [osp.join(root, x.strip()) for x in self.img_files[ds]]
                 self.img_files[ds] = list(filter(lambda x: len(x) > 0, self.img_files[ds]))
 
-            self.label_files[ds] = [
-                x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
-                for x in self.img_files[ds]]
+            #self.label_files[ds] = [
+            #    x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt').replace('.jpeg', '.txt')
+            #    for x in self.img_files[ds]]
+            self.label_files[ds] = [re.sub(IMAGE_FORMAT_PATTERN, '.txt', x.replace('images', 'labels_with_ids')) for x in self.img_files[ds]]
 
         for ds, label_paths in self.label_files.items():
             max_index = -1
@@ -498,7 +448,7 @@ class JointDataset(LoadImagesAndLabels):  # for training
         bbox_xys = np.zeros((self.max_objs, 4), dtype=np.float32)
 
         draw_gaussian = draw_msra_gaussian if self.opt.mse_loss else draw_umich_gaussian
-        for k in range(num_objs):
+        for k in range(min(num_objs, self.max_objs)):
             label = labels[k]
             bbox = label[2:]
             cls_id = int(label[0])
@@ -558,9 +508,10 @@ class DetDataset(LoadImagesAndLabels):  # for training
                 self.img_files[ds] = [osp.join(root, x.strip()) for x in self.img_files[ds]]
                 self.img_files[ds] = list(filter(lambda x: len(x) > 0, self.img_files[ds]))
 
-            self.label_files[ds] = [
-                x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
-                for x in self.img_files[ds]]
+            #self.label_files[ds] = [
+            #    x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
+            #    for x in self.img_files[ds]]
+            self.label_files[ds] = [re.sub(IMAGE_FORMAT_PATTERN, '.txt', x.replace('images', 'labels_with_ids')) for x in self.img_files[ds]]
 
         for ds, label_paths in self.label_files.items():
             max_index = -1
